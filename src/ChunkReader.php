@@ -20,9 +20,9 @@ use Throwable;
 class ChunkReader
 {
     /**
-     * @param  WithChunkReading  $import
-     * @param  Reader  $reader
-     * @param  TemporaryFile  $temporaryFile
+     * @param WithChunkReading $import
+     * @param Reader           $reader
+     * @param TemporaryFile    $temporaryFile
      *
      * @return \Illuminate\Foundation\Bus\PendingDispatch|null
      */
@@ -44,8 +44,15 @@ class ChunkReader
 
         $jobs = new Collection();
         foreach ($worksheets as $name => $sheetImport) {
-            $startRow         = HeadingRowExtractor::determineStartRow($sheetImport);
-            $totalRows[$name] = $sheetImport instanceof WithLimit ? $sheetImport->limit() : $totalRows[$name];
+            $startRow = HeadingRowExtractor::determineStartRow($sheetImport);
+
+            if ($sheetImport instanceof WithLimit) {
+                $limit = $sheetImport->limit();
+
+                if ($limit <= $totalRows[$name]) {
+                    $totalRows[$name] = $sheetImport->limit();
+                }
+            }
 
             for ($currentRow = $startRow; $currentRow <= $totalRows[$name]; $currentRow += $chunkSize) {
                 $jobs->push(new ReadChunk(
